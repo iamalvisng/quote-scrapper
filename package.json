@@ -1,0 +1,12 @@
+{
+  "type": "module",
+  "name": "quote-scrape",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Alvis Ng",
+  "license": "MIT",
+  "dependencies": {
+    "mongodb": "^4.13.0",
+    "playwright": "^1.29.1"
+  }
+}
