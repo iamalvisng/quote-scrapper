@@ -1,8 +1,54 @@
 import playwright from "playwright";
+import dotenv from "dotenv";
 import { MongoClient } from "mongodb";
+
+dotenv.config();
 
 const MONGODB_URL = process.env.MONGODB_URL;
 
+/**
+ * Add em quotes!
+ */
+async function addQuotes(client, quotes) {
+  const db = client.db("NorvstarDevDB");
+
+  const promises = quotes.map(async (quote) => {
+    /**
+     * NOTE:
+     * We need loop through the quotes,
+     * in each quote, we need find the collection if the quote string matches
+     * if YES,
+     *    We skip
+     * Otherwise
+     *    We insert it to the DB
+     */
+
+    const exist = await db
+      .collection("quotes")
+      .find({
+        quote: {
+          $regex: quote.quote,
+        },
+      })
+      .toArray();
+
+    if (exist.length > 0) {
+      return;
+    }
+
+    return await db
+      .collection("quotes")
+      .insertOne({ ...quote, createdAt: new Date(), updatedAt: new Date() });
+  });
+
+  const result = await Promise.all(promises);
+
+  console.log("RESULT", result);
+}
+
+/**
+ * Connect the DB and make it happen!
+ */
 async function connectDB(quotes) {
   const client = new MongoClient(MONGODB_URL);
 
@@ -19,13 +65,10 @@ async function connectDB(quotes) {
   }
 }
 
-async function addQuotes(client, quotes) {
-  const db = client.db("NorvstarDevDB");
-
-  console.log("QUOTES", quotes);
-  await db.collection("quotes").insertMany(quotes);
-}
-
+/**
+ * NOTE:
+ * We use this to harvest data and insert them to into the db
+ */
 async function main() {
   const browser = await playwright.chromium.launch({
     headless: false,
@@ -39,13 +82,21 @@ async function main() {
       (value, index) => start + index * step
     );
 
-  let range = arrayRange(41, 100, 1);
+  // Please in the start page and end page
+  let range = arrayRange(1, 2, 1);
+
+  /**
+   * NOTE:
+   * https://www.goodreads.com/quotes/tag/inspirational?page=${n} --> [✔️]
+   * https://www.goodreads.com/quotes/tag/life?page=${n} --> [✔️]
+   * https://www.goodreads.com/quotes/tag/humor?page=${START_FROM_1} --> [ON GOING]
+   */
 
   const urls = range.map(
-    (n) => `https://www.goodreads.com/quotes/tag/inspirational?page=${n}`
+    (n) => `https://www.goodreads.com/quotes/tag/humor?page=${n}`
   );
 
-  console.log(urls);
+  console.log("URLS", urls);
 
   for (const url of urls) {
     page.goto(url);
